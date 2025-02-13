@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+      // TODO: Add SDKs for Firebase products that you want to use
+      // https://firebase.google.com/docs/web/setup#available-libraries
+    
+      // Your web app's Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      const firebaseConfig = {
+        apiKey: "AIzaSyC6x87LAbDWF5Wef4jN8v26r7YkC0CKjbI",
+        authDomain: "records-4cab0.firebaseapp.com",
+        projectId: "records-4cab0",
+        storageBucket: "records-4cab0.firebasestorage.app",
+        messagingSenderId: "977918986948",
+        appId: "1:977918986948:web:85e16a2ba024870af8d791",
+        measurementId: "G-E3E3FR81ZQ"
+      };
+    
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Management System</h1>
+        <button onclick="openModal('addModal')" class="add-btn">+ Add Student</button>
+        
+        <input type="text" id="searchInput" placeholder="Search Student by ID, Name, or Grade" onkeyup="searchStudent()">
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Grade</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="studentTable"></tbody>
+        </table>
+    </div>
+    
+    <!-- Add Student Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addModal')">&times;</span>
+            <h2>Add Student</h2>
+            <input type="number" id="studentID" placeholder="ID">
+            <input type="text" id="studentName" placeholder="Name">
+            <input type="number" id="studentAge" placeholder="Age">
+            <input type="text" id="studentGrade" placeholder="Grade">
+            <button onclick="addStudent()">Add</button>
+        </div>
+    </div>
+    
+    <script>
+        let students = [];
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+            resetInputs();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function resetInputs() {
+            document.getElementById('studentID').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentAge').value = '';
+            document.getElementById('studentGrade').value = '';
+        }
+
+        function addStudent() {
+            let id = document.getElementById('studentID').value;
+            let name = document.getElementById('studentName').value;
+            let age = document.getElementById('studentAge').value;
+            let grade = document.getElementById('studentGrade').value;
+            
+            if (students.some(student => student.id === id)) {
+                alert('ID already exists!');
+                return;
+            }
+
+            if (id && name && age && grade) {
+                students.push({ id, name, age, grade });
+                updateTable();
+                closeModal('addModal');
+            } else {
+                alert('Please fill all fields');
+            }
+        }
+
+        function updateTable() {
+            let tableBody = document.getElementById('studentTable');
+            tableBody.innerHTML = '';
+            students.forEach((student, index) => {
+                let row = `<tr>
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${student.age}</td>
+                    <td>${student.grade}</td>
+                    <td>
+                        <button onclick="editStudent(${index})">Edit</button>
+                        <button onclick="deleteStudent(${index})">Delete</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function deleteStudent(index) {
+            students.splice(index, 1);
+            updateTable();
+        }
+
+        function editStudent(index) {
+            let student = students[index];
+            document.getElementById('studentID').value = student.id;
+            document.getElementById('studentName').value = student.name;
+            document.getElementById('studentAge').value = student.age;
+            document.getElementById('studentGrade').value = student.grade;
+            openModal('addModal');
+            students.splice(index, 1);
+        }
+
+        function searchStudent() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let tableBody = document.getElementById('studentTable');
+            tableBody.innerHTML = '';
+            students.filter(student => student.id.includes(input) || student.name.toLowerCase().includes(input) || student.grade.toLowerCase().includes(input)).forEach((student, index) => {
+                let row = `<tr>
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${student.age}</td>
+                    <td>${student.grade}</td>
+                    <td>
+                        <button onclick="editStudent(${index})">Edit</button>
+                        <button onclick="deleteStudent(${index})">Delete</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+    </script>
+</body>
+</html>
