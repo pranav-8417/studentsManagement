@@ -4,38 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Management System</title>
-    <link rel="stylesheet" href="styles.css">
-    <script type="module">
-      // Import the functions you need from the SDKs you need
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-      import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
-      // TODO: Add SDKs for Firebase products that you want to use
-      // https://firebase.google.com/docs/web/setup#available-libraries
-    
-      // Your web app's Firebase configuration
-      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-      const firebaseConfig = {
-        apiKey: "AIzaSyC6x87LAbDWF5Wef4jN8v26r7YkC0CKjbI",
-        authDomain: "records-4cab0.firebaseapp.com",
-        projectId: "records-4cab0",
-        storageBucket: "records-4cab0.firebasestorage.app",
-        messagingSenderId: "977918986948",
-        appId: "1:977918986948:web:85e16a2ba024870af8d791",
-        measurementId: "G-E3E3FR81ZQ"
-      };
-    
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
-    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #4A47A3;
+            margin-bottom: 20px;
+        }
+
+        .add-btn {
+            background: #4A47A3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .add-btn:hover {
+            background: #3B3B98;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #3B3B98;
+            color: white;
+        }
+
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button.edit-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        button.delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+            color: #555;
+        }
+
+        .close:hover {
+            color: black;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Student Management System</h1>
-        <button onclick="openModal('addModal')" class="add-btn">+ Add Student</button>
-        
+        <button onclick="openModal()" class="add-btn">+ Add Student</button>
+
         <input type="text" id="searchInput" placeholder="Search Student by ID, Name, or Grade" onkeyup="searchStudent()">
-        
+
         <table>
             <thead>
                 <tr>
@@ -49,110 +147,88 @@
             <tbody id="studentTable"></tbody>
         </table>
     </div>
-    
-    <!-- Add Student Modal -->
-    <div id="addModal" class="modal">
+
+    <!-- Add/Edit Student Modal -->
+    <div id="studentModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('addModal')">&times;</span>
-            <h2>Add Student</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Add Student</h2>
             <input type="number" id="studentID" placeholder="ID">
             <input type="text" id="studentName" placeholder="Name">
             <input type="number" id="studentAge" placeholder="Age">
             <input type="text" id="studentGrade" placeholder="Grade">
-            <button onclick="addStudent()">Add</button>
+            <button id="saveStudent" onclick="saveStudent()">Save</button>
         </div>
     </div>
-    
-    <script>
-        let students = [];
 
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
-            resetInputs();
-        }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6x87LAbDWF5Wef4jN8v26r7YkC0CKjbI",
+            authDomain: "records-4cab0.firebaseapp.com",
+            projectId: "records-4cab0",
+            storageBucket: "records-4cab0.firebaseapp.com",
+            messagingSenderId: "977918986948",
+            appId: "1:977918986948:web:85e16a2ba024870af8d791",
+            measurementId: "G-E3E3FR81ZQ"
+        };
 
-        function resetInputs() {
-            document.getElementById('studentID').value = '';
-            document.getElementById('studentName').value = '';
-            document.getElementById('studentAge').value = '';
-            document.getElementById('studentGrade').value = '';
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        function addStudent() {
-            let id = document.getElementById('studentID').value;
-            let name = document.getElementById('studentName').value;
-            let age = document.getElementById('studentAge').value;
-            let grade = document.getElementById('studentGrade').value;
-            
-            if (students.some(student => student.id === id)) {
-                alert('ID already exists!');
-                return;
-            }
-
-            if (id && name && age && grade) {
-                students.push({ id, name, age, grade });
-                updateTable();
-                closeModal('addModal');
-            } else {
-                alert('Please fill all fields');
-            }
-        }
-
-        function updateTable() {
-            let tableBody = document.getElementById('studentTable');
-            tableBody.innerHTML = '';
-            students.forEach((student, index) => {
-                let row = `<tr>
-                    <td>${student.id}</td>
-                    <td>${student.name}</td>
-                    <td>${student.age}</td>
-                    <td>${student.grade}</td>
-                    <td>
-                        <button onclick="editStudent(${index})">Edit</button>
-                        <button onclick="deleteStudent(${index})">Delete</button>
-                    </td>
-                </tr>`;
-                tableBody.innerHTML += row;
+        async function fetchStudents() {
+            const studentTable = document.getElementById("studentTable");
+            studentTable.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "students"));
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                studentTable.innerHTML += `
+                    <tr>
+                        <td>${data.id}</td>
+                        <td>${data.name}</td>
+                        <td>${data.age}</td>
+                        <td>${data.grade}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editStudent('${doc.id}', '${data.id}', '${data.name}', '${data.age}', '${data.grade}')">Edit</button>
+                            <button class="delete-btn" onclick="deleteStudent('${doc.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
             });
         }
 
-        function deleteStudent(index) {
-            students.splice(index, 1);
-            updateTable();
+        window.addStudent = async function () {
+            const id = document.getElementById("studentID").value;
+            const name = document.getElementById("studentName").value;
+            const age = document.getElementById("studentAge").value;
+            const grade = document.getElementById("studentGrade").value;
+
+            await addDoc(collection(db, "students"), { id, name, age, grade });
+            closeModal();
+            fetchStudents();
         }
 
-        function editStudent(index) {
-            let student = students[index];
-            document.getElementById('studentID').value = student.id;
-            document.getElementById('studentName').value = student.name;
-            document.getElementById('studentAge').value = student.age;
-            document.getElementById('studentGrade').value = student.grade;
-            openModal('addModal');
-            students.splice(index, 1);
+        window.deleteStudent = async function (docId) {
+            await deleteDoc(doc(db, "students", docId));
+            fetchStudents();
         }
 
-        function searchStudent() {
-            let input = document.getElementById('searchInput').value.toLowerCase();
-            let tableBody = document.getElementById('studentTable');
-            tableBody.innerHTML = '';
-            students.filter(student => student.id.includes(input) || student.name.toLowerCase().includes(input) || student.grade.toLowerCase().includes(input)).forEach((student, index) => {
-                let row = `<tr>
-                    <td>${student.id}</td>
-                    <td>${student.name}</td>
-                    <td>${student.age}</td>
-                    <td>${student.grade}</td>
-                    <td>
-                        <button onclick="editStudent(${index})">Edit</button>
-                        <button onclick="deleteStudent(${index})">Delete</button>
-                    </td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
+        window.editStudent = function (docId, id, name, age, grade) {
+            document.getElementById("studentID").value = id;
+            document.getElementById("studentName").value = name;
+            document.getElementById("studentAge").value = age;
+            document.getElementById("studentGrade").value = grade;
+            openModal();
+            window.updateStudent = async function () {
+                await updateDoc(doc(db, "students", docId), { id, name, age, grade });
+                closeModal();
+                fetchStudents();
+            }
         }
+
+        window.onload = fetchStudents;
     </script>
 </body>
 </html>
